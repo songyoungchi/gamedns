@@ -19,25 +19,32 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Android SDK tools
+      - name: Setup Android SDK command-line tools
         uses: android-actions/setup-android@v3
 
       - name: Accept SDK licenses
         run: yes | sdkmanager --licenses
 
       - name: Install required SDK packages
-        run: |
-          sdkmanager "platforms;android-34" "build-tools;34.0.0" "platforms;android-24"
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0" "platforms;android-24"
 
-      - name: Generate Gradle wrapper (if missing)
+      # ---------- دانلود و نصب Gradle به‌صورت دستی ----------
+      - name: Install Gradle 8.7 manually
         run: |
-          if [ ! -f gradlew ]; then
-            gradle wrapper --gradle-version 8.7
-            chmod +x gradlew
-          else
-            chmod +x gradlew
-          fi
+          GRADLE_VERSION=8.7
+          GRADLE_DIST=gradle-${GRADLE_VERSION}-bin.zip
+          wget -q https://services.gradle.org/distributions/${GRADLE_DIST} -P /tmp
+          unzip -q /tmp/${GRADLE_DIST} -d /opt
+          echo "/opt/gradle-${GRADLE_VERSION}/bin" >> $GITHUB_PATH
+          # حالا دستور gradle در دسترس است
 
+      # ---------- تولید Gradle wrapper (اجباری و همیشگی) ----------
+      - name: Generate Gradle wrapper
+        run: |
+          gradle wrapper --gradle-version 8.7
+          chmod +x gradlew
+
+      # ---------- افزودن فیلتر ARMv7 به build.gradle ----------
       - name: Force armeabi-v7a ABI only
         run: |
           BUILD_FILE=$(grep -rl "defaultConfig {" --include="build.gradle" . | head -1)
@@ -48,11 +55,14 @@ jobs:
             sed -i "/defaultConfig {/a \        ndk { abiFilters 'armeabi-v7a' }" "$BUILD_FILE"
           fi
 
+      # ---------- بیلد پروژه ----------
       - name: Build debug APK
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug --stacktrace
 
+      # ---------- جمع‌آوری خروجی ----------
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: GameDNS-armv7-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: |
+            **/build/outputs/apk/debug/*.apk
