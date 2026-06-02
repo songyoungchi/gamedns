@@ -3,7 +3,7 @@ name: Build GameDNS ARMv7 APK
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:   # اجرای دستی از تب Actions
+  workflow_dispatch:
 
 jobs:
   build:
@@ -32,7 +32,6 @@ jobs:
       - name: Generate Gradle wrapper (if missing)
         run: |
           if [ ! -f gradlew ]; then
-            # با استفاده از Gradle ای که همراه اکشن نصب شده wrapper را می‌سازیم
             gradle wrapper --gradle-version 8.7
             chmod +x gradlew
           else
@@ -41,7 +40,13 @@ jobs:
 
       - name: Force armeabi-v7a ABI only
         run: |
-          sed -i "/defaultConfig {/a \        ndk { abiFilters 'armeabi-v7a' }" app/build.gradle
+          BUILD_FILE=$(grep -rl "defaultConfig {" --include="build.gradle" . | head -1)
+          if [ -z "$BUILD_FILE" ]; then
+            echo "No build.gradle with defaultConfig found; skipping ABI filter."
+          else
+            echo "Applying ABI filter to: $BUILD_FILE"
+            sed -i "/defaultConfig {/a \        ndk { abiFilters 'armeabi-v7a' }" "$BUILD_FILE"
+          fi
 
       - name: Build debug APK
         run: ./gradlew assembleDebug
