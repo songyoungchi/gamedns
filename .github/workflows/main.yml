@@ -43,12 +43,15 @@ jobs:
           gradle wrapper --gradle-version 8.7
           chmod +x gradlew
 
+      # ---------- نصب ImageMagick برای ساخت آیکون موقت ----------
+      - name: Install ImageMagick
+        run: sudo apt-get update && sudo apt-get install -y imagemagick
+
       # ---------- ایجاد آیکون‌های پیش‌فرض (در صورت نبود) ----------
       - name: Generate placeholder launcher icons
         run: |
           RES_PATH="app/src/main/res/mipmap-hdpi"
-          mkdir -p $RES_PATH
-          # فقط در صورتی ایجاد کن که فایل وجود نداشته باشد
+          mkdir -p "$RES_PATH"
           if [ ! -f "$RES_PATH/ic_launcher.png" ]; then
             convert -size 48x48 xc:'#000000' "$RES_PATH/ic_launcher.png"
           fi
