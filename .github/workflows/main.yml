@@ -1,0 +1,53 @@
+name: Build GameDNS ARMv7 APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:   # اجرای دستی از تب Actions
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK tools
+        uses: android-actions/setup-android@v3
+
+      - name: Accept SDK licenses
+        run: yes | sdkmanager --licenses
+
+      - name: Install required SDK packages
+        run: |
+          sdkmanager "platforms;android-34" "build-tools;34.0.0" "platforms;android-24"
+
+      - name: Generate Gradle wrapper (if missing)
+        run: |
+          if [ ! -f gradlew ]; then
+            # با استفاده از Gradle ای که همراه اکشن نصب شده wrapper را می‌سازیم
+            gradle wrapper --gradle-version 8.7
+            chmod +x gradlew
+          else
+            chmod +x gradlew
+          fi
+
+      - name: Force armeabi-v7a ABI only
+        run: |
+          sed -i "/defaultConfig {/a \        ndk { abiFilters 'armeabi-v7a' }" app/build.gradle
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GameDNS-armv7-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
