@@ -28,7 +28,7 @@ jobs:
       - name: Install required SDK packages
         run: sdkmanager "platforms;android-34" "build-tools;34.0.0" "platforms;android-24"
 
-      # ---------- دانلود و نصب Gradle به‌صورت دستی ----------
+      # ---------- نصب Gradle به‌صورت دستی ----------
       - name: Install Gradle 8.7 manually
         run: |
           GRADLE_VERSION=8.7
@@ -36,13 +36,25 @@ jobs:
           wget -q https://services.gradle.org/distributions/${GRADLE_DIST} -P /tmp
           unzip -q /tmp/${GRADLE_DIST} -d /opt
           echo "/opt/gradle-${GRADLE_VERSION}/bin" >> $GITHUB_PATH
-          # حالا دستور gradle در دسترس است
 
-      # ---------- تولید Gradle wrapper (اجباری و همیشگی) ----------
+      # ---------- تولید Gradle wrapper ----------
       - name: Generate Gradle wrapper
         run: |
           gradle wrapper --gradle-version 8.7
           chmod +x gradlew
+
+      # ---------- ایجاد آیکون‌های پیش‌فرض (در صورت نبود) ----------
+      - name: Generate placeholder launcher icons
+        run: |
+          RES_PATH="app/src/main/res/mipmap-hdpi"
+          mkdir -p $RES_PATH
+          # فقط در صورتی ایجاد کن که فایل وجود نداشته باشد
+          if [ ! -f "$RES_PATH/ic_launcher.png" ]; then
+            convert -size 48x48 xc:'#000000' "$RES_PATH/ic_launcher.png"
+          fi
+          if [ ! -f "$RES_PATH/ic_launcher_round.png" ]; then
+            convert -size 48x48 xc:'#000000' "$RES_PATH/ic_launcher_round.png"
+          fi
 
       # ---------- افزودن فیلتر ARMv7 به build.gradle ----------
       - name: Force armeabi-v7a ABI only
